@@ -1090,7 +1090,7 @@ static gboolean gd_touch_event(GtkWidget *widget, GdkEventTouch *touch,
                                void *opaque)
 {
     VirtualConsole *vc = opaque;
-    uint64_t num_slot = GPOINTER_TO_UINT(touch->sequence);
+    uint64_t num_slot = GPOINTER_TO_UINT(touch->sequence) % INPUT_EVENT_SLOTS_MAX;
     int type = -1;
 
     switch (touch->type) {
