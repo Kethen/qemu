@@ -24,6 +24,7 @@
 /* Ported SDL 1.2 code to 2.0 by Dave Airlie. */
 
 #include "qemu/osdep.h"
+#include "qapi/error.h"
 #include "qemu/module.h"
 #include "qemu/cutils.h"
 #include "ui/console.h"
@@ -53,6 +54,8 @@ static bool guest_cursor;
 static int guest_x, guest_y;
 static SDL_Cursor *guest_sprite;
 static Notifier mouse_mode_notifier;
+
+static struct touch_slot touch_slots[INPUT_EVENT_SLOTS_MAX];
 
 #define SDL2_REFRESH_INTERVAL_BUSY 10
 #define SDL2_MAX_IDLE_COUNT (2 * GUI_REFRESH_INTERVAL_DEFAULT \
@@ -508,6 +511,10 @@ static void handle_mousemotion(SDL_Event *ev)
         return;
     }
 
+    if(ev->motion.which == SDL_TOUCH_MOUSEID){
+        return;
+    }
+
     if (qemu_input_is_absolute(scon->dcl.con) || absolute_enabled) {
         int scr_w, scr_h;
         SDL_GetWindowSize(scon->real_window, &scr_w, &scr_h);
@@ -537,6 +544,10 @@ static void handle_mousebutton(SDL_Event *ev)
     struct sdl2_console *scon = get_scon_from_window(ev->button.windowID);
 
     if (!scon || !qemu_console_is_graphic(scon->dcl.con)) {
+        return;
+    }
+
+    if (ev->button.which == SDL_TOUCH_MOUSEID) {
         return;
     }
 
@@ -663,6 +674,40 @@ static void handle_windowevent(SDL_Event *ev)
     }
 }
 
+static void handle_finger(SDL_Event *ev)
+{
+    struct sdl2_console *scon = get_scon_from_window(ev->tfinger.windowID);
+
+    if (!scon || !qemu_console_is_graphic(scon->dcl.con)) {
+        return;
+    }
+
+    int type = -1;
+    int num_slot = (uint64_t)ev->tfinger.fingerId % INPUT_EVENT_SLOTS_MAX;
+    double x = ev->tfinger.x * surface_width(scon->surface);
+    double y = ev->tfinger.y * surface_height(scon->surface);
+
+    switch (ev->type) {
+        case SDL_FINGERDOWN: {
+            type = INPUT_MULTI_TOUCH_TYPE_BEGIN;
+            break;
+        }
+        case SDL_FINGERMOTION: {
+            type = INPUT_MULTI_TOUCH_TYPE_UPDATE;
+            break;
+        }
+        case SDL_FINGERUP: {
+            type = INPUT_MULTI_TOUCH_TYPE_END;
+            break;
+        }
+    }
+
+    console_handle_touch_event(scon->dcl.con, touch_slots,
+                               num_slot, surface_width(scon->surface),
+                               surface_height(scon->surface), x,
+                               y, type, &error_warn);
+}
+
 void sdl2_poll_events(struct sdl2_console *scon)
 {
     SDL_Event ev1, *ev = &ev1;
@@ -712,6 +757,12 @@ void sdl2_poll_events(struct sdl2_console *scon)
             break;
         case SDL_WINDOWEVENT:
             handle_windowevent(ev);
+            break;
+        case SDL_FINGERDOWN:
+        case SDL_FINGERMOTION:
+        case SDL_FINGERUP:
+            idle = 0;
+            handle_finger(ev);
             break;
         default:
             break;
@@ -962,6 +1013,11 @@ static void sdl2_display_init(DisplayState *ds, DisplayOptions *o)
 
     if (gui_fullscreen) {
         sdl_grab_start(&sdl2_console[0]);
+    }
+
+    for (i = 0; i < INPUT_EVENT_SLOTS_MAX; i++) {
+        struct touch_slot *slot = &touch_slots[i];
+        slot->tracking_id = -1;
     }
 
     atexit(sdl_cleanup);
