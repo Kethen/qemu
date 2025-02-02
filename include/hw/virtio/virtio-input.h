@@ -96,6 +96,7 @@ struct VirtIOInputHost {
     VirtIOInput                       parent_obj;
     char                              *evdev;
     int                               fd;
+    int                               exclusive;
 };
 
 struct VHostUserInput {

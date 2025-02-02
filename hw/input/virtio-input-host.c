@@ -125,11 +125,13 @@ static void virtio_input_host_realize(DeviceState *dev, Error **errp)
         goto err_close;
     }
 
-    rc = ioctl(vih->fd, EVIOCGRAB, 1);
-    if (rc < 0) {
-        error_setg_errno(errp, errno, "%s: failed to get exclusive access",
-                         vih->evdev);
-        goto err_close;
+    if (vih->exclusive) {
+        rc = ioctl(vih->fd, EVIOCGRAB, 1);
+        if (rc < 0) {
+            error_setg_errno(errp, errno, "%s: failed to get exclusive access",
+                             vih->evdev);
+            goto err_close;
+        }
     }
 
     memset(&id, 0, sizeof(id));
@@ -223,6 +225,7 @@ static const VMStateDescription vmstate_virtio_input_host = {
 
 static Property virtio_input_host_properties[] = {
     DEFINE_PROP_STRING("evdev", VirtIOInputHost, evdev),
+    DEFINE_PROP_INT32("exclusive", VirtIOInputHost, exclusive, 1),
     DEFINE_PROP_END_OF_LIST(),
 };
 
