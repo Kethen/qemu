@@ -1473,10 +1473,14 @@
 # @grab-mod: Modifier keys that should be pressed together with the
 #     "G" key to release the mouse grab.
 #
+# @refresh-rate: Force ui display refresh rate
+#
 # Since: 7.1
 ##
 { 'struct'  : 'DisplaySDL',
-  'data'    : { '*grab-mod'   : 'HotKeyMod' } }
+  'data'    : { '*grab-mod'     : 'HotKeyMod',
+                '*refresh-rate' : 'int'
+  } }
 
 ##
 # @DisplayType:

@@ -81,6 +81,9 @@ static int sdl_get_refresh_rate(struct sdl2_console *scon)
     if (scon->real_window == NULL) {
         return 60;
     }
+    if (scon->opts->u.sdl.refresh_rate != 0){
+        return scon->opts->u.sdl.refresh_rate;
+    }
     SDL_DisplayMode display_mode;
     SDL_GetWindowDisplayMode(scon->real_window, &display_mode);
     return display_mode.refresh_rate;
