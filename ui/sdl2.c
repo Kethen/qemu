@@ -76,6 +76,49 @@ static struct sdl2_console *get_scon_from_window(uint32_t window_id)
     return NULL;
 }
 
+static int sdl_get_refresh_rate(struct sdl2_console *scon)
+{
+    if (scon->real_window == NULL) {
+        return 60;
+    }
+    SDL_DisplayMode display_mode;
+    SDL_GetWindowDisplayMode(scon->real_window, &display_mode);
+    return display_mode.refresh_rate;
+}
+
+static void update_ui_refresh_rate(struct sdl2_console *scon)
+{
+    QemuUIInfo info;
+    int sdl_refresh_rate;
+
+    if (!dpy_ui_info_supported(scon->dcl.con)) {
+        return;
+    }
+
+    sdl_refresh_rate = sdl_get_refresh_rate(scon);
+    info = *dpy_get_ui_info(scon->dcl.con);
+    info.refresh_rate = (sdl_refresh_rate == 0 ? 60 : sdl_refresh_rate) * 1000;
+    dpy_set_ui_info(scon->dcl.con, &info, true);
+}
+
+static void update_ui_size(struct sdl2_console *scon)
+{
+    QemuUIInfo info;
+    int width, height;
+
+    if (!dpy_ui_info_supported(scon->dcl.con)) {
+        return;
+    }
+
+    SDL_GetWindowSize(scon->real_window, &width, &height);
+
+    info = *dpy_get_ui_info(scon->dcl.con);
+    info.width = width;
+    info.height = height;
+
+    dpy_set_ui_info(scon->dcl.con, &info, true);
+}
+
 void sdl2_window_create(struct sdl2_console *scon)
 {
     int flags = 0;
@@ -121,6 +164,8 @@ void sdl2_window_create(struct sdl2_console *scon)
         scon->real_renderer = SDL_CreateRenderer(scon->real_window, -1, 0);
     }
     sdl_update_caption(scon);
+    update_ui_size(scon);
+    update_ui_refresh_rate(scon);
 }
 
 void sdl2_window_destroy(struct sdl2_console *scon)
@@ -593,13 +638,7 @@ static void handle_windowevent(SDL_Event *ev)
 
     switch (ev->window.event) {
     case SDL_WINDOWEVENT_RESIZED:
-        {
-            QemuUIInfo info;
-            memset(&info, 0, sizeof(info));
-            info.width = ev->window.data1;
-            info.height = ev->window.data2;
-            dpy_set_ui_info(scon->dcl.con, &info, true);
-        }
+        update_ui_size(scon);
         sdl2_redraw(scon);
         break;
     case SDL_WINDOWEVENT_EXPOSED:
@@ -751,6 +790,8 @@ void sdl2_poll_events(struct sdl2_console *scon)
         sdl_update_caption(scon);
     }
 
+    update_ui_refresh_rate(scon);
+
     while (SDL_PollEvent(ev)) {
         switch (ev->type) {
         case SDL_KEYDOWN:
@@ -809,8 +850,10 @@ void sdl2_poll_events(struct sdl2_console *scon)
             }
         }
     } else {
+        // target 3 times refresh rate to have less event backlog on refresh
+        int interval_ms = 1000 / 3 / sdl_get_refresh_rate(scon);
         scon->idle_counter = 0;
-        scon->dcl.update_interval = SDL2_REFRESH_INTERVAL_BUSY;
+        scon->dcl.update_interval = interval_ms == 0 ? 1 : interval_ms;
     }
 }
 
