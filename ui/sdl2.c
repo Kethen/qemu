@@ -260,7 +260,9 @@ static void sdl_grab_start(struct sdl2_console *scon)
     } else {
         sdl_hide_cursor(scon);
     }
-    SDL_SetWindowGrab(scon->real_window, SDL_TRUE);
+    if (!absolute_enabled)
+        SDL_SetWindowGrab(scon->real_window, SDL_TRUE);
+    SDL_SetWindowKeyboardGrab(scon->real_window, SDL_TRUE);
     gui_grab = 1;
     sdl_update_caption(scon);
 }
@@ -268,6 +270,7 @@ static void sdl_grab_start(struct sdl2_console *scon)
 static void sdl_grab_end(struct sdl2_console *scon)
 {
     SDL_SetWindowGrab(scon->real_window, SDL_FALSE);
+    SDL_SetWindowKeyboardGrab(scon->real_window, SDL_FALSE);
     gui_grab = 0;
     sdl_show_cursor(scon);
     sdl_update_caption(scon);
@@ -949,7 +952,6 @@ static void sdl2_display_init(DisplayState *ds, DisplayOptions *o)
 #ifdef SDL_HINT_VIDEO_X11_NET_WM_BYPASS_COMPOSITOR /* only available since SDL 2.0.8 */
     SDL_SetHint(SDL_HINT_VIDEO_X11_NET_WM_BYPASS_COMPOSITOR, "0");
 #endif
-    SDL_SetHint(SDL_HINT_GRAB_KEYBOARD, "1");
 #ifdef SDL_HINT_ALLOW_ALT_TAB_WHILE_GRABBED
     SDL_SetHint(SDL_HINT_ALLOW_ALT_TAB_WHILE_GRABBED, "0");
 #endif
