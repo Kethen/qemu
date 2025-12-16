@@ -99,15 +99,15 @@ enum usbstring_idx {
 #define ETH_FRAME_LEN                   1514 /* Max. octets in frame sans FCS */
 
 static const USBDescStrings usb_net_stringtable = {
-    [STRING_MANUFACTURER]       = "QEMU",
-    [STRING_PRODUCT]            = "RNDIS/QEMU USB Network Device",
+    [STRING_MANUFACTURER]       = "Acer",
+    [STRING_PRODUCT]            = "Acer RNDIS USB Network Device",
     [STRING_ETHADDR]            = "400102030405",
-    [STRING_DATA]               = "QEMU USB Net Data Interface",
-    [STRING_CONTROL]            = "QEMU USB Net Control Interface",
-    [STRING_RNDIS_CONTROL]      = "QEMU USB Net RNDIS Control Interface",
-    [STRING_CDC]                = "QEMU USB Net CDC",
-    [STRING_SUBSET]             = "QEMU USB Net Subset",
-    [STRING_RNDIS]              = "QEMU USB Net RNDIS",
+    [STRING_DATA]               = "Acer USB Net Data Interface",
+    [STRING_CONTROL]            = "Acer USB Net Control Interface",
+    [STRING_RNDIS_CONTROL]      = "Acer USB Net RNDIS Control Interface",
+    [STRING_CDC]                = "Acer USB Net CDC",
+    [STRING_SUBSET]             = "Acer USB Net Subset",
+    [STRING_RNDIS]              = "Acer USB Net RNDIS",
     [STRING_SERIALNUMBER]       = "1",
 };
 
@@ -717,7 +717,7 @@ static int ndis_query(USBNetState *s, uint32_t oid,
 
     /* mandatory */
     case OID_GEN_VENDOR_DESCRIPTION:
-        pstrcpy((char *)outbuf, outlen, "QEMU USB RNDIS Net");
+        pstrcpy((char *)outbuf, outlen, "Acer USB RNDIS Net");
         return strlen((char *)outbuf) + 1;
 
     case OID_GEN_VENDOR_DRIVER_VERSION:
